@@ -1,0 +1,33 @@
+Network Driver
+
+#+BEGIN_EXAMPLE
+  Linux Drivers
+    |
+    +---> Char Device Driver
+    |
+    +---> Block Device Driver
+    |
+    +---> Network Device Driver
+#+END_EXAMPLE
+
+  NW interface are the 3rd class of Linux devices
+
+  Similar to others(char & block) NW interface must register with
+  NW specific kernel data structure.
+
+  NW interface has no such entry point linke */dev/sda*.
+
+  Normal file operations (read, write, ..) do not make sense when
+  applied to NW interface.
+
+  socket.read and socket.write calls act on a software object. that
+  is distinct from NW interface.
+
+  *Important difference* is, 'Block Driver' operate only in
+  response to request from the kernel. Whereas 'Network Driver'
+  packets asynchronously form the outside.
+
+  The term *octect* refer to a group of eight bits.
+
+
+* *snull* Network Interface
