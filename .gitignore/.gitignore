@@ -1,8 +1,0 @@
-# Backup file
-*~
-*.o
-*.ko
-*.mod.c
-*.order
-*.symvers
-.*
