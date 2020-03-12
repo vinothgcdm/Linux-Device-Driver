@@ -3,7 +3,7 @@ Reading notes of Linux Device Driver by Jonathan Corbet; Alessandro Rubini; Greg
 
 We can download all given sample code in this book from https://resources.oreilly.com/examples/9780596005900/tree/master
 
-# Load and Unload scull module
+# 1-scull-simple-module
 ```bash
 vinoth@vinoth-VBox:~/Linux-Device-Driver/scull$ l
 main.c  Makefile
