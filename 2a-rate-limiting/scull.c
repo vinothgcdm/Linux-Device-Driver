@@ -59,10 +59,23 @@ int scull_open(struct inode *inode, struct file *filp)
 	return 0;
 }
 
+/*
+ * Intentionally this function return 1. We expect these prints will keep printing on consol.
+ *
+ * The behaviour of @printk_ratelimit can be costomized by modifying /proc/sys/kernel/printk_ratelimit
+ * (the no.of seonds wait before re-enabling message) and /proc/sys/kernel/printk_ratelimit_burst
+ * (the no.of messages accepted before ratelimit.
+ */
 ssize_t scull_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
 {
-	printk("scull_read\n");
-	return 0;
+	if (printk_ratelimit()) {
+		printk("scull_read-1\n");
+	}
+	if (printk_ratelimit()) {
+		printk("scull_read-2\n");
+	}
+
+	return 1;
 }
 
 ssize_t scull_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
