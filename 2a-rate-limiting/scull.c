@@ -2,6 +2,7 @@
 #include <linux/module.h>
 #include <linux/fs.h>
 #include <linux/cdev.h>
+#include <linux/kdev_t.h>
 #include "scull.h"
 
 static int scull_major = 0;
@@ -21,6 +22,7 @@ static int scull_init(void)
 {
 	dev_t dev = 0;
 	int ret = 0;
+	char buf[20];
 
 	printk("Hello from Scull\n");
 	ret = alloc_chrdev_region(&dev, scull_minor, scull_nr_devs, "scull");
@@ -31,7 +33,11 @@ static int scull_init(void)
 
 	scull_major = MAJOR(dev);
 	scull_minor = MINOR(dev);
-	printk("Major: %d, Minor: %d\n", scull_major, scull_minor);
+	memset(buf, 'a', sizeof(buf));
+	print_dev_t(buf, dev); /* new line is already appended */
+	printk("Device number: %s", buf);
+	memset(buf, 'a', sizeof(buf));
+	printk("Device number: %s\n", format_dev_t(buf, dev));
 
 	cdev_init(&cdev, &scull_fops);
 	ret = cdev_add(&cdev, dev, 1);
