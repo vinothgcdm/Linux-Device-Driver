@@ -11,8 +11,8 @@
 static int scull_major = 0;
 static int scull_minor = 0;
 static int scull_nr_devs = 1;
-static int scull_quantum = 100;
-static int scull_qset = 10;
+static int scull_quantum = 10;
+static int scull_qset = 5;
 static struct scull_dev *scull_device;
 
 static struct file_operations scull_fops = {
@@ -45,13 +45,21 @@ static int scull_seq_show(struct seq_file *s, void *v)
         return 0;
     }
 
-    seq_printf(s, "qset: %d, quantum: %d, size: %lu\n", dev->qset, dev->quantum, dev->size);
+    seq_printf(s, "qset: %d[%p], quantum: %d, size: %lu\n",
+               dev->qset, dev->data, dev->quantum, dev->size);
     for (d = dev->data; d; d = d->next) {
-        seq_printf(s, "qset[%p]: ", d);
+        seq_printf(s, "qset[%p, %p(next)]:\n", d, d->next);
         for (i = 0; d->data[i] && (i < dev->qset); i++) {
-            seq_printf(s, "Quantum[%d, %p]", i, d->data[i]);
+            seq_printf(s, "Quantum[%d, %p, %p(next)]  ",
+                       i, d->data[i], ((i + 1) < dev->qset) ? (d->data[i + 1]) : NULL);
             for (j = 0; (j < dev->size) && (j < dev->quantum); j++) {
-                seq_printf(s, " 0x%02x", *((char*)(d->data[i]) + j));
+                char ch = *((char*)(d->data[i]) + j);
+                if (((ch >= 'a') && (ch <= 'z')) ||
+                    ((ch >= 'A') && (ch <= 'Z'))) {
+                    seq_printf(s, "%c", ch);
+                } else {
+                    seq_printf(s, ".");
+                }
             }
             seq_printf(s, "\n");
         }
@@ -100,21 +108,26 @@ static const struct file_operations scull_proc_ops = {
 static int scull_trim(struct scull_dev *dev)
 {
     int i;
-    struct scull_qset *delete_ptr;
+    struct scull_qset *ptr;
     struct scull_qset *next_ptr;
 
     if ((dev == NULL) || (dev->data == NULL)) {
         return -1;
     }
 
-    for (delete_ptr = dev->data; delete_ptr; delete_ptr = next_ptr) {
-        if (delete_ptr->data) {
+    /* iterate quantum set */
+    for (ptr = dev->data; ptr; ptr = next_ptr) {
+        if (ptr->data) {
+            /* iterate quantum pointers */
             for (i = 0; i < dev->qset; i++) {
-                kfree(delete_ptr->data + i);
+                if ((ptr->data + i) == NULL) {
+                    break;
+                }
+                kfree(ptr->data + i);
             }
         }
-        next_ptr = delete_ptr->next;
-        kfree(delete_ptr);
+        next_ptr = ptr->next;
+        kfree(ptr);
     }
     dev->size = 0;
     dev->data = NULL;
@@ -132,20 +145,18 @@ static int scull_init(void)
     if (ret < 0) {
         printk("Allocating device number is failed.\n");
         return ret;
-    } else {
-        scull_major = MAJOR(dev);
-        scull_minor = MINOR(dev);
     }
+    scull_major = MAJOR(dev);
+    scull_minor = MINOR(dev);
 
     scull_device = (struct scull_dev*)kmalloc(scull_nr_devs * sizeof(struct scull_dev), GFP_KERNEL);
     if (scull_device == NULL) {
         printk("kmalloc failed to allocate for scull_device\n");
         goto fail;
-    } else {
-        memset(scull_device, 0, scull_nr_devs * sizeof(struct scull_dev));
-        scull_device[0].qset = scull_qset;
-        scull_device[0].quantum = scull_quantum;
     }
+    memset(scull_device, 0, scull_nr_devs * sizeof(struct scull_dev));
+    scull_device[0].qset = scull_qset;
+    scull_device[0].quantum = scull_quantum;
 
     cdev_init(&scull_device[0].cdev, &scull_fops);
     ret = cdev_add(&scull_device[0].cdev, dev, 1);
@@ -166,12 +177,11 @@ static void scull_exit(void)
 {
     dev_t dev = MKDEV(scull_major, scull_minor);
 
+    remove_proc_entry("scullmem", NULL);
     cdev_del(&scull_device[0].cdev);
     unregister_chrdev_region(dev, scull_nr_devs);
     scull_trim(scull_device);
-    kfree(scull_device);
-    remove_proc_entry("scullmem", NULL);
-    
+    //kfree(scull_device);
     PDEBUG("scull_exit\n");
 }
 
@@ -194,22 +204,26 @@ static struct scull_qset* scull_follow(struct scull_dev *dev, int qset)
         /* allocate memory for head quantum set */
         ptr = (struct scull_qset*)kmalloc(sizeof(struct scull_qset), GFP_KERNEL);
         if (ptr == NULL) {
+            PDEBUG("scull_follow: malloc failed to create head qset.");
             return NULL;
         }
         dev->data = ptr;
         memset(ptr, 0, sizeof(struct scull_qset));
     }
 
+    PDEBUG("scull_follow: ptr: %p\n", ptr);
     while (qset--) {
         if (ptr->next == NULL) {
             /* allocate memory for next quantum set */
             ptr->next = (struct scull_qset*)kmalloc(sizeof(struct scull_qset), GFP_KERNEL);
             if (ptr->next == NULL) {
+                PDEBUG("scull_follow: malloc failed to create next qset.");
                 return NULL;
             }
-            memset(ptr, 0, sizeof(struct scull_qset));
+            memset(ptr->next, 0, sizeof(struct scull_qset));
         }
         ptr = ptr->next;
+        PDEBUG("scull_follow: ptr->next: %p\n", ptr);
     }
 
     return ptr;
@@ -284,10 +298,13 @@ ssize_t scull_write(struct file *filp, const char __user *buf, size_t count, lof
     dest_qset = (long)*f_pos / qset_size;
     dest_quantum = ((long)*f_pos % qset_size) / quantum;
     dest_quantum_pos = ((long)*f_pos % qset_size) % quantum;
+    PDEBUG("scull_write: dest_qset: %d, dest_quantum: %d, dest_quantum_pos: %d, f_pos: %lu\n",
+            dest_qset, dest_quantum, dest_quantum_pos, *((long*)f_pos));
 
     /* follow the quantum_set in list upto right position */
     ptr = scull_follow(dev, dest_qset);
     if (ptr == NULL) {
+        PDEBUG("scull_write: scull_follow failed\n");
         goto out;
     }
 
@@ -295,6 +312,7 @@ ssize_t scull_write(struct file *filp, const char __user *buf, size_t count, lof
         /* allocate memory for array of quantum pointers (qset) */
         ptr->data = kmalloc(qset * sizeof(char*), GFP_KERNEL);
         if (ptr->data == NULL) {
+            PDEBUG("scull_write: malloc failed to create quantum pointers.\n");
             goto out;
         }
         memset(ptr->data, 0, qset * sizeof(char*));
@@ -304,6 +322,7 @@ ssize_t scull_write(struct file *filp, const char __user *buf, size_t count, lof
         /* allocate memory for quantum array */
         ptr->data[dest_quantum] = kmalloc(quantum, GFP_KERNEL);
         if (ptr->data[dest_quantum] == NULL) {
+            PDEBUG("scull_write: malloc failed to create quantum array.\n");
             goto out;
         }
     }
@@ -313,6 +332,7 @@ ssize_t scull_write(struct file *filp, const char __user *buf, size_t count, lof
     }
 
     if (copy_from_user(ptr->data[dest_quantum] + dest_quantum_pos, buf, count)) {
+        PDEBUG("scull_write: copy_from_user failed.\n");
         retval = -EFAULT;
         goto out;
     }
