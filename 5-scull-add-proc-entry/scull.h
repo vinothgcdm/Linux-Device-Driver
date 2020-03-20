@@ -3,13 +3,14 @@
 
 #include <linux/cdev.h>
 
-#define SCULL_DEBUG
+// #define SCULL_DEBUG
 #undef PDEBUG
 #ifdef SCULL_DEBUG
 #define PDEBUG(fmt, arg...) printk(KERN_DEBUG "scull: " fmt, ## arg)
 #else
 #define PDEBUG(fmt, arg...) /* do nothing */
 #endif
+#define PPDEBUG(fmt, arg...) /* do nothing */
 
 struct scull_qset {
     void **data;

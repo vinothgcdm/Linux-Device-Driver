@@ -98,3 +98,49 @@ I am learning Linux device driver. It is so interesting.
 
 root@vinoth-VBox:/home/vinoth/Documents/Linux-Device-Driver/3-scull-device-implementation# 
 ```
+
+# 5-scull-add-proc-entry modules
+```
+[15:21]vinoth@vinoth-VBox /5-scull-add-proc-entry: $ make
+make -C /lib/modules/4.15.0-88-generic/build M=/home/vinoth/Documents/Linux-Device-Driver/5-scull-add-proc-entry modules
+make[1]: Entering directory '/usr/src/linux-headers-4.15.0-88-generic'
+  CC [M]  /home/vinoth/Documents/Linux-Device-Driver/5-scull-add-proc-entry/scull.o
+  Building modules, stage 2.
+  MODPOST 1 modules
+  CC      /home/vinoth/Documents/Linux-Device-Driver/5-scull-add-proc-entry/scull.mod.o
+  LD [M]  /home/vinoth/Documents/Linux-Device-Driver/5-scull-add-proc-entry/scull.ko
+make[1]: Leaving directory '/usr/src/linux-headers-4.15.0-88-generic'
+[15:21]vinoth@vinoth-VBox /5-scull-add-proc-entry: $ l
+Makefile  scull.c  scull.mod.c  scull.h  scull.ko  scull.mod.o  scull.o  modules.order  Module.symvers
+[15:21]vinoth@vinoth-VBox /5-scull-add-proc-entry: $ sudo insmod scull.ko && sudo dmesg -c
+[15:22]vinoth@vinoth-VBox /5-scull-add-proc-entry: $ grep "scull" /proc/devices 
+243 scull
+[15:22]vinoth@vinoth-VBox /5-scull-add-proc-entry: $ sudo mknod /dev/scull c 243 0
+[15:22]vinoth@vinoth-VBox /5-scull-add-proc-entry: $ sudo su
+root@vinoth-VBox:/home/vinoth/Documents/Linux-Device-Driver/5-scull-add-proc-entry# cat scull.c > /dev/scull 
+root@vinoth-VBox:/home/vinoth/Documents/Linux-Device-Driver/5-scull-add-proc-entry# exit
+[15:22]vinoth@vinoth-VBox /5-scull-add-proc-entry: $ sudo cat /proc/scullmem | head
+qset: 5[000000002db5c954], quantum: 10, size: 9837
+qset[000000002db5c954, 0000000049e39773(next)]:
+Quantum[0, 00000000bc065401, 000000001ff78cf2(next)]  #include..
+Quantum[1, 000000001ff78cf2, 000000006cb775cb(next)]  linux.init
+Quantum[2, 000000006cb775cb, 00000000f50ea53c(next)]  .h..#inclu
+Quantum[3, 00000000f50ea53c, 00000000da1c33ae(next)]  de..linux.
+Quantum[4, 00000000da1c33ae,           (null)(next)]  module.h..
+
+qset[0000000049e39773, 000000003ca47a9d(next)]:
+Quantum[0, 000000002cc749c5, 000000000c4ad1f0(next)]  #include..
+[15:22]vinoth@vinoth-VBox /5-scull-add-proc-entry: $ sudo cat /proc/scullmem | tail
+Quantum[2, 00000000ed49298c, 00000000a786e671(next)]  .Dual.BSD.
+Quantum[3, 00000000a786e671, 00000000775acb50(next)]  GPL....mod
+Quantum[4, 00000000775acb50,           (null)(next)]  ule.init.s
+
+qset[00000000c14ad569,           (null)(next)]:
+Quantum[0, 000000003e96591e, 000000001421ee7d(next)]  cull.init.
+Quantum[1, 000000001421ee7d, 00000000811ef17c(next)]  ..module.e
+Quantum[2, 00000000811ef17c, 00000000b2050be9(next)]  xit.scull.
+Quantum[3, 00000000b2050be9,           (null)(next)]  exit...###
+
+[15:22]vinoth@vinoth-VBox /5-scull-add-proc-entry: $ sudo rmmod scull.ko && sudo dmesg -c
+[15:23]vinoth@vinoth-VBox /5-scull-add-proc-entry: $ 
+```

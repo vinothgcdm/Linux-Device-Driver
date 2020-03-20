@@ -26,7 +26,6 @@ static struct file_operations scull_fops = {
 /* ---------- Start create_proc_entry ---------- */
 static void *scull_seq_start(struct seq_file *s, loff_t *pos)
 {
-    printk("seq_start:\n");
     if (*pos >= scull_nr_devs) {
         return NULL;
     }
@@ -40,22 +39,25 @@ static int scull_seq_show(struct seq_file *s, void *v)
     struct scull_dev *dev = (struct scull_dev*)v;
     struct scull_qset *d;
 
-    printk("seq_show:\n");
     if (dev == NULL) {
         return 0;
     }
 
     seq_printf(s, "qset: %d[%p], quantum: %d, size: %lu\n",
                dev->qset, dev->data, dev->quantum, dev->size);
+    /* iterate quantum set */
     for (d = dev->data; d; d = d->next) {
         seq_printf(s, "qset[%p, %p(next)]:\n", d, d->next);
+        /* iterate quantum pointers */
         for (i = 0; d->data[i] && (i < dev->qset); i++) {
             seq_printf(s, "Quantum[%d, %p, %p(next)]  ",
                        i, d->data[i], ((i + 1) < dev->qset) ? (d->data[i + 1]) : NULL);
-            for (j = 0; (j < dev->size) && (j < dev->quantum); j++) {
+            /* print quantum data */
+            for (j = 0; j < dev->quantum; j++) {
                 char ch = *((char*)(d->data[i]) + j);
                 if (((ch >= 'a') && (ch <= 'z')) ||
-                    ((ch >= 'A') && (ch <= 'Z'))) {
+                    ((ch >= 'A') && (ch <= 'Z')) ||
+                    (ch == '#')) {
                     seq_printf(s, "%c", ch);
                 } else {
                     seq_printf(s, ".");
@@ -71,7 +73,6 @@ static int scull_seq_show(struct seq_file *s, void *v)
 
 static void *scull_seq_next(struct seq_file *s, void *v, loff_t *pos)
 {
-    printk("seq_next:\n");
     (*pos)++;
     if (*pos >= scull_nr_devs) {
         return NULL;
@@ -81,7 +82,6 @@ static void *scull_seq_next(struct seq_file *s, void *v, loff_t *pos)
 
 static void scull_seq_stop(struct seq_file *s, void *v)
 {
-    printk("seq_stop:\n");
 }
 
 static struct seq_operations scull_seq_ops = {
@@ -108,6 +108,7 @@ static const struct file_operations scull_proc_ops = {
 static int scull_trim(struct scull_dev *dev)
 {
     int i;
+    int j;
     struct scull_qset *ptr;
     struct scull_qset *next_ptr;
 
@@ -116,14 +117,16 @@ static int scull_trim(struct scull_dev *dev)
     }
 
     /* iterate quantum set */
-    for (ptr = dev->data; ptr; ptr = next_ptr) {
+    for (j = 0, ptr = dev->data; ptr; j++, ptr = next_ptr) {
         if (ptr->data) {
+            PPDEBUG("scull_trim: qset[%d]: %p\n", j, ptr);
             /* iterate quantum pointers */
             for (i = 0; i < dev->qset; i++) {
-                if ((ptr->data + i) == NULL) {
+                if (ptr->data[i] == NULL) {
                     break;
                 }
-                kfree(ptr->data + i);
+                PPDEBUG("scull_trim: quantum[%d]: %p\n", i, ptr->data[i]);
+                kfree(ptr->data[i]);
             }
         }
         next_ptr = ptr->next;
@@ -181,7 +184,7 @@ static void scull_exit(void)
     cdev_del(&scull_device[0].cdev);
     unregister_chrdev_region(dev, scull_nr_devs);
     scull_trim(scull_device);
-    //kfree(scull_device);
+    kfree(scull_device);
     PDEBUG("scull_exit\n");
 }
 
@@ -211,7 +214,7 @@ static struct scull_qset* scull_follow(struct scull_dev *dev, int qset)
         memset(ptr, 0, sizeof(struct scull_qset));
     }
 
-    PDEBUG("scull_follow: ptr: %p\n", ptr);
+    PPDEBUG("scull_follow: ptr: %p\n", ptr);
     while (qset--) {
         if (ptr->next == NULL) {
             /* allocate memory for next quantum set */
@@ -223,7 +226,7 @@ static struct scull_qset* scull_follow(struct scull_dev *dev, int qset)
             memset(ptr->next, 0, sizeof(struct scull_qset));
         }
         ptr = ptr->next;
-        PDEBUG("scull_follow: ptr->next: %p\n", ptr);
+        PPDEBUG("scull_follow: ptr->next: %p\n", ptr);
     }
 
     return ptr;
@@ -325,6 +328,7 @@ ssize_t scull_write(struct file *filp, const char __user *buf, size_t count, lof
             PDEBUG("scull_write: malloc failed to create quantum array.\n");
             goto out;
         }
+        memset(ptr->data[dest_quantum], '#', quantum);
     }
 
     if (count > (quantum - dest_quantum_pos)) {
