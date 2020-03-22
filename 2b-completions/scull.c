@@ -93,7 +93,8 @@ ssize_t scull_write(struct file *filp, const char __user *buf, size_t count, lof
 	printk("scull_write: process %i (%s) awaking the readers...\n",
 		current->pid, current->comm);
 	copy_from_user(kbuf, buf, len);
-	complete(&comp);
+	//complete(&comp);
+	complete_all(&comp);
 	return len;
 }
 
