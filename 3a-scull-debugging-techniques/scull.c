@@ -92,7 +92,7 @@ static void scull_exit(void)
     unregister_chrdev_region(dev, scull_nr_devs);
     scull_trim(scull_device);
     kfree(scull_device);
-    
+
     PDEBUG("scull_exit\n");
 }
 

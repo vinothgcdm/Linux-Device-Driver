@@ -4,16 +4,16 @@
 #include <linux/cdev.h>
 
 struct scull_qset {
-	void **data;
-	struct scull_qset *next;
+    void **data;
+    struct scull_qset *next;
 };
 
 struct scull_dev {
-	struct scull_qset *data;	/* Poninting to fist quantum set (qset) */
-	int qset;					/* No.of arrays in one qset */
-	int quantum;				/* Array length in qset */
-	unsigned long size;			/* Amount of data stored here */
-	struct cdev cdev;			/* Char device structure */
+    struct scull_qset *data;    /* Poninting to fist quantum set (qset) */
+    int qset;                   /* No.of arrays in one qset */
+    int quantum;                /* Array length in qset */
+    unsigned long size;         /* Amount of data stored here */
+    struct cdev cdev;           /* Char device structure */
 };
 
 int scull_open(struct inode *inode, struct file *filp);

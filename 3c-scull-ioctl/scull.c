@@ -25,33 +25,33 @@ static struct file_operations scull_fops = {
 
 static int scull_trim(struct scull_dev *dev)
 {
-	int i;
-	struct scull_qset *delete_ptr;
-	struct scull_qset *next_ptr;
+    int i;
+    struct scull_qset *delete_ptr;
+    struct scull_qset *next_ptr;
 
-	if ((dev == NULL) || (dev->data == NULL)) {
-		return -1;
-	}
+    if ((dev == NULL) || (dev->data == NULL)) {
+        return -1;
+    }
 
-	for (delete_ptr = dev->data; delete_ptr; delete_ptr = next_ptr) {
-		if (delete_ptr->data) {
-			for (i = 0; i < dev->qset; i++) {
-				kfree(delete_ptr->data + i);
-			}
-		}
-		next_ptr = delete_ptr->next;
-		kfree(delete_ptr);
-	}
-	dev->size = 0;
-	dev->data = NULL;
+    for (delete_ptr = dev->data; delete_ptr; delete_ptr = next_ptr) {
+        if (delete_ptr->data) {
+            for (i = 0; i < dev->qset; i++) {
+                kfree(delete_ptr->data + i);
+            }
+        }
+        next_ptr = delete_ptr->next;
+        kfree(delete_ptr);
+    }
+    dev->size = 0;
+    dev->data = NULL;
 
-	return 0;
+    return 0;
 }
 
 static int scull_init(void)
 {
-	dev_t dev = 0;
-	int ret = 0;
+    dev_t dev = 0;
+    int ret = 0;
 
 	printk("Hello from scull\n");
 	ret = alloc_chrdev_region(&dev, scull_minor, scull_nr_devs, "scull");
@@ -88,75 +88,75 @@ fail:
 
 static void scull_exit(void)
 {
-	dev_t dev = MKDEV(scull_major, scull_minor);
+    dev_t dev = MKDEV(scull_major, scull_minor);
 
-	cdev_del(&scull_device[0].cdev);
-	unregister_chrdev_region(dev, scull_nr_devs);
-	scull_trim(scull_device);
-	kfree(scull_device);
-	
-	printk("Goodbye from scull\n");
+    cdev_del(&scull_device[0].cdev);
+    unregister_chrdev_region(dev, scull_nr_devs);
+    scull_trim(scull_device);
+    kfree(scull_device);
+    
+    PDEBUG("scull_exit\n");
 }
 
 int scull_open(struct inode *inode, struct file *filp)
 {
-	struct scull_dev *dev = NULL;
+    struct scull_dev *dev = NULL;
 
-	dev = container_of(inode->i_cdev, struct scull_dev, cdev);
-	filp->private_data = dev;
+    dev = container_of(inode->i_cdev, struct scull_dev, cdev);
+    filp->private_data = dev;
 
-	printk("scull_open\n");
-	return 0;
+    PDEBUG("scull_open\n");
+    return 0;
 }
 
 static struct scull_qset* scull_follow(struct scull_dev *dev, int qset)
 {
-	struct scull_qset *ptr = dev->data;
+    struct scull_qset *ptr = dev->data;
 
-	if (ptr == NULL) {
-		/* allocate memory for head quantum set */
-		ptr = (struct scull_qset*)kmalloc(sizeof(struct scull_qset), GFP_KERNEL);
-		if (ptr == NULL) {
-			return NULL;
-		}
-		dev->data = ptr;
-		memset(ptr, 0, sizeof(struct scull_qset));
-	}
+    if (ptr == NULL) {
+        /* allocate memory for head quantum set */
+        ptr = (struct scull_qset*)kmalloc(sizeof(struct scull_qset), GFP_KERNEL);
+        if (ptr == NULL) {
+            return NULL;
+        }
+        dev->data = ptr;
+        memset(ptr, 0, sizeof(struct scull_qset));
+    }
 
-	while (qset--) {
-		if (ptr->next == NULL) {
-			/* allocate memory for next quantum set */
-			ptr->next = (struct scull_qset*)kmalloc(sizeof(struct scull_qset), GFP_KERNEL);
-			if (ptr->next == NULL) {
-				return NULL;
-			}
-			memset(ptr, 0, sizeof(struct scull_qset));
-		}
-		ptr = ptr->next;
-	}
+    while (qset--) {
+        if (ptr->next == NULL) {
+            /* allocate memory for next quantum set */
+            ptr->next = (struct scull_qset*)kmalloc(sizeof(struct scull_qset), GFP_KERNEL);
+            if (ptr->next == NULL) {
+                return NULL;
+            }
+            memset(ptr, 0, sizeof(struct scull_qset));
+        }
+        ptr = ptr->next;
+    }
 
-	return ptr;
+    return ptr;
 }
 
 ssize_t scull_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
 {
-	int quantum;
-	int qset;
-	int qset_size;
-	int source_quantum;
-	int source_quantum_pos;
-	int source_qset;
-	int retval = 0;
-	struct scull_dev *dev = (struct scull_dev*)filp->private_data;
-	struct scull_qset *ptr = NULL;
+    int quantum;
+    int qset;
+    int qset_size;
+    int source_quantum;
+    int source_quantum_pos;
+    int source_qset;
+    int retval = 0;
+    struct scull_dev *dev = (struct scull_dev*)filp->private_data;
+    struct scull_qset *ptr = NULL;
 
-	printk("scull_read\n");
-	if (dev == NULL) {
-		goto out;
-	}
-	if ((*f_pos >= dev->size) || (dev->size == 0)) {
-		goto out;
-	}
+    printk("scull_read\n");
+    if (dev == NULL) {
+        goto out;
+    }
+    if ((*f_pos >= dev->size) || (dev->size == 0)) {
+        goto out;
+    }
 
 	quantum = dev->quantum;
 	qset = dev->qset;
