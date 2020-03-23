@@ -99,7 +99,7 @@ I am learning Linux device driver. It is so interesting.
 root@vinoth-VBox:/home/vinoth/Documents/Linux-Device-Driver/3-scull-device-implementation# 
 ```
 
-# 5-scull-add-proc-entry modules
+# 3b-scull-add-proc-entry modules
 ```
 [15:21]vinoth@vinoth-VBox /5-scull-add-proc-entry: $ make
 make -C /lib/modules/4.15.0-88-generic/build M=/home/vinoth/Documents/Linux-Device-Driver/5-scull-add-proc-entry modules
@@ -143,4 +143,46 @@ Quantum[3, 00000000b2050be9,           (null)(next)]  exit...###
 
 [15:22]vinoth@vinoth-VBox /5-scull-add-proc-entry: $ sudo rmmod scull.ko && sudo dmesg -c
 [15:23]vinoth@vinoth-VBox /5-scull-add-proc-entry: $ 
+```
+
+# 3c-scull-ioctl
+```
+[12:30]vinoth@vinoth-VBox /3c-scull-ioctl: $ l
+Makefile  scull.c  user_app.c  scull.h  scull_ioctl.h
+[12:30]vinoth@vinoth-VBox /3c-scull-ioctl: $ make
+make -C /lib/modules/4.15.0-91-generic/build M=/home/vinoth/Documents/Linux-Device-Driver/3c-scull-ioctl modules
+make[1]: Entering directory '/usr/src/linux-headers-4.15.0-91-generic'
+  CC [M]  /home/vinoth/Documents/Linux-Device-Driver/3c-scull-ioctl/scull.o
+  Building modules, stage 2.
+  MODPOST 1 modules
+  CC      /home/vinoth/Documents/Linux-Device-Driver/3c-scull-ioctl/scull.mod.o
+  LD [M]  /home/vinoth/Documents/Linux-Device-Driver/3c-scull-ioctl/scull.ko
+make[1]: Leaving directory '/usr/src/linux-headers-4.15.0-91-generic'
+[12:30]vinoth@vinoth-VBox /3c-scull-ioctl: $ l
+Makefile  scull.c  scull.mod.c  user_app.c  scull.h  scull_ioctl.h  scull.ko  scull.mod.o  scull.o  modules.order  a.out*  Module.symvers
+[12:30]vinoth@vinoth-VBox /3c-scull-ioctl: $ sudo insmod scull.ko && sudo dmesg -c
+[10818.422374] Hello from scull
+[12:30]vinoth@vinoth-VBox /3c-scull-ioctl: $ grep "scull" /proc/devices 
+243 scull
+[12:31]vinoth@vinoth-VBox /3c-scull-ioctl: $ sudo mknod /dev/scull c 243 0
+[12:31]vinoth@vinoth-VBox /3c-scull-ioctl: $ ll /dev/scull 
+crw-r--r-- 1 root root 243, 0 Mac  23 12:31 /dev/scull
+[12:31]vinoth@vinoth-VBox /3c-scull-ioctl: $ sudo su
+root@vinoth-VBox:/home/vinoth/Documents/Linux-Device-Driver/3c-scull-ioctl# gcc user_app.c 
+root@vinoth-VBox:/home/vinoth/Documents/Linux-Device-Driver/3c-scull-ioctl# ./a.out 
+fd: 3
+SCULL_IOCGQUANTUM : Ret: 0, Quantum set to 8
+SCULL_IOCGQSET    : Ret: 0, Qset set to 3
+SCULL_IOCGQUANTUM : Ret: 0, Quantum: 8
+SCULL_IOCGQSET    : Ret: 0, Qset: 3
+SCULL_IOCTQUANTUM : Ret: 0, Quantum set to 10
+SCULL_IOCTQSET    : Ret: 0, Qset set to 5
+SCULL_IOCXQUANTUM : Ret: 0, Exchange quantum value 10 -> 200
+SCULL_IOCXQSET    : Ret: 0, Exchange qset value 5 -> 20
+SCULL_IOCHQUANTUM : Ret: 200, Quantum shift with 123
+SCULL_IOCHQSET    : Ret: 20, Qset shift with 45
+SCULL_RESET       : Ret: 0
+SCULL_IOCGQUANTUM : Ret: 0, Quantum: 100
+SCULL_IOCGQSET    : Ret: 0, Qset: 10
+root@vinoth-VBox:/home/vinoth/Documents/Linux-Device-Driver/3c-scull-ioctl# 
 ```
