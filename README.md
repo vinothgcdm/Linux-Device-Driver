@@ -186,3 +186,27 @@ SCULL_IOCGQUANTUM : Ret: 0, Quantum: 100
 SCULL_IOCGQSET    : Ret: 0, Qset: 10
 root@vinoth-VBox:/home/vinoth/Documents/Linux-Device-Driver/3c-scull-ioctl# 
 ```
+
+# 2c-read-write-semaphore
+```
+[40868.863886] scull_open: process 8565
+[40868.863899] scull_write: process 8565 waiting for the semaphore
+[40868.863900] scull_write: process 8565 acquired the semaphore & ssleep(30)
+[40871.338269] scull_open: process 9628
+[40871.338282] scull_read: process 9628 waiting for the semaphore
+[40874.006999] scull_open: process 9629
+[40874.007012] scull_read: process 9629 waiting for the semaphore
+[40876.776874] scull_open: process 7951
+[40876.776888] scull_write: process 7951 waiting for the semaphore
+[40900.293957] scull_write: process 8565 semaphore released
+[40900.293988] scull_release: process 8565
+[40900.294953] scull_read: process 9628 acquired the semaphore & ssleep(30)
+[40900.294966] scull_read: process 9629 acquired the semaphore & ssleep(30)
+[40931.013560] scull_read: process 9629 semaphore is released
+[40931.013661] scull_release: process 9629
+[40931.014694] scull_read: process 9628 semaphore is released
+[40931.014718] scull_release: process 9628
+[40931.015448] scull_write: process 7951 acquired the semaphore & ssleep(30)
+[40961.733517] scull_write: process 7951 semaphore released
+[40961.733541] scull_release: process 7951
+```
